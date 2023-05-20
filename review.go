@@ -1,6 +1,7 @@
 package review
 
 import (
+	"encoding/base64"
 	"log"
 	"strconv"
 	"strings"
@@ -43,15 +44,22 @@ func (r *Reviewer) List(path string) Reviews {
 			log.Println(err)
 			continue
 		}
-		reviews[lineNumber] = append(reviews[lineNumber], strings.Join(parts[1:], ":"))
+		message, err := base64.StdEncoding.DecodeString(parts[1])
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		reviews[lineNumber] = append(reviews[lineNumber], string(message))
 	}
 	return reviews
 }
 
-func (r *Reviewer) Write(path string, line int, message string) error {
+func (r *Reviewer) Add(path string, line int, message string) error {
 	hash, err := r.Hash(path)
 	if err != nil {
 		return err
 	}
-	return r.WriteNote(r.ref, hash, strconv.Itoa(line)+":"+message)
+	//base64 encode the message so that it can contain formatting characters
+	encodedMessage := base64.StdEncoding.EncodeToString([]byte(message))
+	return r.AddNote(r.ref, hash, strconv.Itoa(line)+":"+encodedMessage)
 }

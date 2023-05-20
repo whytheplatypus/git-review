@@ -12,7 +12,7 @@ type NoteShower interface {
 
 // NoteWriter is an interface for appending to git notes for a hash
 type NoteWriter interface {
-	WriteNote(ref string, hash string, message string) error
+	AddNote(ref string, hash string, message string) error
 }
 
 // FileLister is an interface for listing files in a commit

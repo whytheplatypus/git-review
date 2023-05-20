@@ -22,8 +22,10 @@ func (g *CliGit) Show(ref string, hash string) (string, error) {
 }
 
 // WriteNote appends a note to a given hash
-func (g *CliGit) WriteNote(ref string, hash string, message string) error {
+func (g *CliGit) AddNote(ref string, hash string, message string) error {
 	c := exec.Command("git", "notes", "append", "-m", message, hash)
 	c.Env = append(c.Env, "GIT_NOTES_REF=refs/notes/"+ref)
-	return c.Run()
+	o, err := c.CombinedOutput()
+	log.Println(string(o))
+	return err
 }
