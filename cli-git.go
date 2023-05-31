@@ -3,6 +3,7 @@ package review
 import (
 	"log"
 	"os/exec"
+	"strings"
 )
 
 // CliGit is a type that implements the NoteShower, NoteWriter interfaces
@@ -28,4 +29,21 @@ func (g *CliGit) AddNote(ref string, hash string, message string) error {
 	o, err := c.CombinedOutput()
 	log.Println(string(o))
 	return err
+}
+
+// UpdateRef updates a symbolic ref to point to a given ref
+func (g *CliGit) UpdateRef(ref string, target string) error {
+	c := exec.Command("git", "symbolic-ref", ref, target)
+	o, err := c.CombinedOutput()
+	log.Println(string(o))
+	return err
+}
+
+// GetRef gets a symbolic ref given a name
+func (g *CliGit) GetRef(ref string) (string, error) {
+	c := exec.Command("git", "symbolic-ref", ref)
+	o, err := c.Output()
+	target := strings.Trim(string(o), "\n")
+	log.Println(target)
+	return target, err
 }

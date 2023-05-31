@@ -19,8 +19,12 @@ type Reviewer struct {
 	ref string
 }
 
-func (r *Reviewer) Switch(ref string) {
-	r.ref = ref
+func (r *Reviewer) Switch(ref string) string {
+
+	ref = strings.TrimPrefix(ref, "refs/notes/review/")
+
+	r.ref = "review/" + ref
+	return r.ref
 }
 
 func (r *Reviewer) List(path string) Reviews {

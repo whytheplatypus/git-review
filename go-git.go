@@ -3,6 +3,7 @@ package review
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -23,6 +24,31 @@ func (g *Git) Hash(path string) (string, error) {
 	// hash the contents of the file
 	hash := plumbing.ComputeHash(plumbing.BlobObject, bytes)
 	return hash.String(), nil
+}
+
+// ListRefs lists all review names
+func (g *Git) ListRefs(prefix string) ([]string, error) {
+	repo, err := git.PlainOpenWithOptions(".", &git.PlainOpenOptions{
+		DetectDotGit: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	notes, err := repo.Notes()
+	if err != nil {
+		return nil, err
+	}
+
+	refs := []string{}
+
+	notes.ForEach(func(n *plumbing.Reference) error {
+		if strings.HasPrefix(n.Name().String(), prefix) {
+			refs = append(refs, strings.TrimPrefix(n.Name().String(), prefix))
+		}
+		return nil
+	})
+	return refs, nil
 }
 
 // List returns the files in a commit
