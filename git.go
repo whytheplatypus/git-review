@@ -19,3 +19,8 @@ type NoteWriter interface {
 type FileLister interface {
 	List(ref string) ([]string, error)
 }
+
+// RefFinder is an interface for finding the ref for a symbolic ref
+type RefFinder interface {
+	GetRef(ref string) (string, error)
+}

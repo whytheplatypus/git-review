@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"strconv"
 
 	review "github.com/whytheplatypus/git-review"
 )
@@ -17,8 +16,8 @@ import (
 * switches review: git review switch <review name>
 * lists reivews for a directory: git review <dir>
 * lists reviews for a file: git review <file>
-* shows reviews for a line: git review <file> <line>
-* adds review for a line: git review <file> <line> -m "message"
+* shows reviews for a line: git review -l <line> <file>
+* adds review for a line: git review add -m "message" -l <line> <file>
 * prunes notes: git review prune
 * opens default editor to add a review for a line: git review <file> <line> -e
 * opens a specified editor to add a review for a line: git review <file> <line> -e <editor>
@@ -30,6 +29,7 @@ var reviewer = review.Reviewer{
 	Hasher:     &goGit,
 	NoteShower: &cliGit,
 	NoteWriter: &cliGit,
+	RefFinder:  &cliGit,
 }
 
 func init() {
@@ -37,10 +37,7 @@ func init() {
 	log.SetOutput(io.Discard)
 }
 
-type command interface {
-	Parse() error
-	Execute() error
-}
+type command func(args []string) error
 
 func Switch(args []string) error {
 	f := flag.NewFlagSet("switch", flag.ExitOnError)
@@ -67,50 +64,18 @@ func Switch(args []string) error {
 
 func Review(args []string) error {
 	f := flag.NewFlagSet("review", flag.ExitOnError)
-	var verbose bool
-	f.BoolVar(&verbose, "v", false, "Show verbose logging")
+	line := f.Int("l", -1, "Line number to show review for")
 	f.Parse(args)
 
-	if verbose {
-		log.SetOutput(os.Stderr)
-	}
-
 	file := f.Arg(0)
-	line := f.Arg(1)
-
-	if len(f.Args()) > 2 {
-		mf := flag.NewFlagSet("message", flag.ExitOnError)
-		var message string
-		mf.StringVar(&message, "m", "", "Message to add to the review")
-		mf.Parse(f.Args()[2:])
-
-		if message != "" {
-			log.Println(message)
-
-			// Check that both file and line are present
-			if file == "" || line == "" {
-				return errors.New("file and line must be specified")
-			}
-
-			// Check that line is a number
-			lineNumber, err := strconv.Atoi(line)
-			if err != nil {
-				return err
-			}
-
-			// Add the note
-			return reviewer.Add(file, lineNumber, message)
-		}
+	if file == "" {
+		return errors.New("file must be specified")
 	}
 
 	reviews := reviewer.List(file)
 
-	if line != "" {
-		lineNumber, err := strconv.Atoi(line)
-		if err != nil {
-			return err
-		}
-		fmt.Println(reviews[lineNumber])
+	if *line > -1 {
+		fmt.Println(reviews[*line])
 		return nil
 	}
 
@@ -119,31 +84,50 @@ func Review(args []string) error {
 	return nil
 }
 
+func Add(args []string) error {
+	f := flag.NewFlagSet("add", flag.ExitOnError)
+	message := f.String("m", "", "Message to add to review")
+	line := f.Int("l", -1, "Line number to add review for")
+	f.Parse(args)
+
+	file := f.Arg(0)
+	if file == "" {
+		return errors.New("file must be specified")
+	}
+
+	if *message == "" {
+		return errors.New("message must be specified")
+	}
+
+	return reviewer.Add(file, *line, *message)
+}
+
+var commands = map[string]command{
+	"switch": Switch,
+	"add":    Add,
+	"list":   Review, // default command
+}
+
 func main() {
-	// if there is no current review at REVIEW_HEAD warn that one must be created with `git review switch`
-	ref, err := cliGit.GetRef("REVIEW_HEAD")
-	if err != nil {
+	var verbose bool
+	flag.BoolVar(&verbose, "v", false, "Show verbose logging")
+	flag.Parse()
+
+	if verbose {
+		log.SetOutput(os.Stderr)
+	}
+
+	args := flag.Args()[1:]
+	command, ok := commands[flag.Arg(0)]
+	if !ok {
+		log.Fatalf("Unknown command %s", flag.Arg(0))
+	}
+
+	if err := reviewer.Init(); err != nil {
 		log.Fatal(err)
 	}
 
-	if ref == "" {
-		log.Println("No current review. Create one with `git review switch <review name>`")
-		return
+	if err := command(args); err != nil {
+		log.Fatal(err)
 	}
-
-	if len(os.Args) < 2 {
-		fmt.Println(ref)
-		return
-	}
-
-	if os.Args[1] == "switch" {
-		log.Println(Switch(os.Args[2:]))
-		return
-	}
-
-	log.Println(ref)
-
-	reviewer.Switch(ref)
-
-	log.Println(Review(os.Args[1:]))
 }

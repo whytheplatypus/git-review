@@ -2,6 +2,8 @@ package review
 
 import (
 	"encoding/base64"
+	"errors"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -15,8 +17,26 @@ type Reviews map[int][]string
 type Reviewer struct {
 	Hasher
 	NoteShower
+	RefFinder
 	NoteWriter
 	ref string
+}
+
+func (r *Reviewer) Init() error {
+	// if there is no current review at REVIEW_HEAD warn that one must be created with `git review switch`
+	ref, err := r.GetRef("REVIEW_HEAD")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// these are both the same error case, good place for refactoring
+	if ref == "" {
+		return errors.New("No current review. Create one with `git review switch <review name>`")
+	}
+
+	// hide this
+	log.Println(r.Switch(ref))
+	return nil
 }
 
 func (r *Reviewer) Switch(ref string) string {
@@ -65,5 +85,5 @@ func (r *Reviewer) Add(path string, line int, message string) error {
 	}
 	//base64 encode the message so that it can contain formatting characters
 	encodedMessage := base64.StdEncoding.EncodeToString([]byte(message))
-	return r.AddNote(r.ref, hash, strconv.Itoa(line)+":"+encodedMessage)
+	return r.AddNote(r.ref, hash, fmt.Sprintf("%d:%s", line, encodedMessage))
 }
