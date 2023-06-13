@@ -1,4 +1,4 @@
-package review
+package gogit
 
 import (
 	"log"
@@ -9,12 +9,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
-// Git is a type that implements the Hasher and FileLister interfaces
-// using the go-git library
-type Git struct{}
-
 // Hash returns the hash of a file at a given ref
-func (g *Git) Hash(path string) (string, error) {
+func Hash(path string) (string, error) {
 	//read the bytes of the file
 	bytes, err := os.ReadFile(path)
 	if err != nil {
@@ -27,7 +23,7 @@ func (g *Git) Hash(path string) (string, error) {
 }
 
 // ListRefs lists all review names
-func (g *Git) ListRefs(prefix string) ([]string, error) {
+func ListRefs(prefix string) ([]string, error) {
 	repo, err := git.PlainOpenWithOptions(".", &git.PlainOpenOptions{
 		DetectDotGit: true,
 	})
@@ -52,7 +48,7 @@ func (g *Git) ListRefs(prefix string) ([]string, error) {
 }
 
 // List returns the files in a commit
-func (g *Git) List(ref string) ([]string, error) {
+func List(ref string) ([]string, error) {
 	repo, err := git.PlainOpen(".")
 	if err != nil {
 		log.Fatal(err)

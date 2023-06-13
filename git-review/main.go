@@ -9,6 +9,8 @@ import (
 	"os"
 
 	review "github.com/whytheplatypus/git-review"
+	cligit "github.com/whytheplatypus/git-review/cli-git"
+	gogit "github.com/whytheplatypus/git-review/go-git"
 )
 
 /**
@@ -23,13 +25,18 @@ import (
 * opens a specified editor to add a review for a line: git review <file> <line> -e <editor>
  */
 
-var cliGit = review.CliGit{}
-var goGit = review.Git{}
 var reviewer = review.Reviewer{
-	Hasher:     &goGit,
-	NoteShower: &cliGit,
-	NoteWriter: &cliGit,
-	RefFinder:  &cliGit,
+	Hash:    gogit.Hash,
+	Show:    cligit.Show,
+	AddNote: cligit.AddNote,
+	GetRef:  cligit.GetRef,
+}
+
+var headReviewer = review.Reviewer{
+	Hash:    cligit.TrackedHash,
+	Show:    cligit.Show,
+	AddNote: cligit.AddNote,
+	GetRef:  cligit.GetRef,
 }
 
 func init() {
@@ -45,7 +52,7 @@ func Switch(args []string) error {
 	ref := f.Arg(0)
 
 	if ref == "" {
-		refs, err := goGit.ListRefs("refs/notes/review/")
+		refs, err := gogit.ListRefs("refs/notes/review/")
 		if err != nil {
 			return err
 		}
@@ -58,7 +65,7 @@ func Switch(args []string) error {
 	r := reviewer.Switch(ref)
 
 	// update the symbolic ref "REVIEW_HEAD" to point to the specified ref
-	cliGit.UpdateRef("REVIEW_HEAD", "refs/notes/"+r)
+	cligit.UpdateRef("REVIEW_HEAD", "refs/notes/"+r)
 	return nil
 }
 
@@ -105,7 +112,8 @@ func Add(args []string) error {
 var commands = map[string]command{
 	"switch": Switch,
 	"add":    Add,
-	"list":   Review, // default command
+	// I think I need a flag to either show the results for a file as is or from history
+	"list": Review, // default command
 }
 
 func main() {
