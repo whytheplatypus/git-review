@@ -25,28 +25,14 @@ import (
 * opens a specified editor to add a review for a line: git review <file> <line> -e <editor>
  */
 
-var reviewer = review.Reviewer{
-	Hash:    gogit.Hash,
-	Show:    cligit.Show,
-	AddNote: cligit.AddNote,
-	GetRef:  cligit.GetRef,
-}
-
-var headReviewer = review.Reviewer{
-	Hash:    cligit.TrackedHash,
-	Show:    cligit.Show,
-	AddNote: cligit.AddNote,
-	GetRef:  cligit.GetRef,
-}
-
 func init() {
 	log.SetFlags(log.Lshortfile)
 	log.SetOutput(io.Discard)
 }
 
-type command func(args []string) error
+type command func(args []string, reviewer review.Reviewer) error
 
-func Switch(args []string) error {
+func Switch(args []string, reviewer review.Reviewer) error {
 	f := flag.NewFlagSet("switch", flag.ExitOnError)
 	f.Parse(args)
 	ref := f.Arg(0)
@@ -69,7 +55,7 @@ func Switch(args []string) error {
 	return nil
 }
 
-func Review(args []string) error {
+func Review(args []string, reviewer review.Reviewer) error {
 	f := flag.NewFlagSet("review", flag.ExitOnError)
 	line := f.Int("l", -1, "Line number to show review for")
 	f.Parse(args)
@@ -91,7 +77,7 @@ func Review(args []string) error {
 	return nil
 }
 
-func Add(args []string) error {
+func Add(args []string, reviewer review.Reviewer) error {
 	f := flag.NewFlagSet("add", flag.ExitOnError)
 	message := f.String("m", "", "Message to add to review")
 	line := f.Int("l", -1, "Line number to add review for")
@@ -118,11 +104,29 @@ var commands = map[string]command{
 
 func main() {
 	var verbose bool
+	var tracked bool
 	flag.BoolVar(&verbose, "v", false, "Show verbose logging")
+	flag.BoolVar(&verbose, "t", false, "Use tracked refs for files")
 	flag.Parse()
 
 	if verbose {
 		log.SetOutput(os.Stderr)
+	}
+
+	var reviewer = review.Reviewer{
+		Hash:    gogit.Hash,
+		Show:    cligit.Show,
+		AddNote: cligit.AddNote,
+		GetRef:  cligit.GetRef,
+	}
+
+	if tracked {
+		reviewer = review.Reviewer{
+			Hash:    cligit.TrackedHash,
+			Show:    cligit.Show,
+			AddNote: cligit.AddNote,
+			GetRef:  cligit.GetRef,
+		}
 	}
 
 	args := flag.Args()[1:]
@@ -135,7 +139,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := command(args); err != nil {
+	if err := command(args, reviewer); err != nil {
 		log.Fatal(err)
 	}
 }
