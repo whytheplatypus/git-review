@@ -87,6 +87,7 @@ func (r *Reviewer) Add(path string, line int, message string) error {
 	if err != nil {
 		return err
 	}
+	log.Printf("adding note to hash %s at %s\n", hash, path)
 
 	//TODO: return an error as a warning if the hash is not tracked in git
 	// This requires an error type that can be checked later

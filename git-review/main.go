@@ -106,7 +106,7 @@ func main() {
 	var verbose bool
 	var tracked bool
 	flag.BoolVar(&verbose, "v", false, "Show verbose logging")
-	flag.BoolVar(&verbose, "t", false, "Use tracked refs for files")
+	flag.BoolVar(&tracked, "t", false, "Use tracked refs for files")
 	flag.Parse()
 
 	if verbose {
@@ -121,6 +121,7 @@ func main() {
 	}
 
 	if tracked {
+		log.Println("tracking")
 		reviewer = review.Reviewer{
 			Hash:    cligit.TrackedHash,
 			Show:    cligit.Show,

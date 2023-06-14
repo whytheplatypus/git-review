@@ -35,7 +35,7 @@ func TrackedHash(path string) (string, error) {
 		return string(o), err
 	}
 	log.Println(string(o))
-	return string(o), nil
+	return strings.TrimSpace(string(o)), nil
 }
 
 // UpdateRef updates a symbolic ref to point to a given ref

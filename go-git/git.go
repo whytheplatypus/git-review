@@ -19,7 +19,7 @@ func Hash(path string) (string, error) {
 
 	// hash the contents of the file
 	hash := plumbing.ComputeHash(plumbing.BlobObject, bytes)
-	return hash.String(), nil
+	return strings.TrimSpace(hash.String()), nil
 }
 
 // ListRefs lists all review names
