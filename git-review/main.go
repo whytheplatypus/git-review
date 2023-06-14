@@ -47,11 +47,10 @@ func Switch(args []string, reviewer review.Reviewer) error {
 		}
 		return nil
 	}
-
-	r := reviewer.Switch(ref)
+	//TODO: check ref structure with path
 
 	// update the symbolic ref "REVIEW_HEAD" to point to the specified ref
-	cligit.UpdateRef("REVIEW_HEAD", "refs/notes/"+r)
+	cligit.UpdateRef("REVIEW_HEAD", "refs/notes/review/"+ref)
 	return nil
 }
 

@@ -19,36 +19,22 @@ type Reviewer struct {
 	Show    func(ref string, hash string) (string, error)
 	GetRef  func(ref string) (string, error)
 	AddNote func(ref string, hash string, message string) error
-	ref     string
 }
 
-func (r *Reviewer) Init() error {
-	// if there is no current review at REVIEW_HEAD warn that one must be created with `git review switch`
-	// can possibly extract this
+func (r *Reviewer) ref() string {
 	ref, err := r.GetRef("REVIEW_HEAD")
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 
 	// these are both the same error case, good place for refactoring
 	if ref == "" {
-		return errors.New("no current review. Create one with `git review switch <review name>`")
+		err := errors.New("no current review. Create one with `git review switch <review name>`")
+		log.Fatal(err)
 	}
-
-	// hide this
-	r.Switch(ref)
-
+	ref = strings.TrimPrefix(ref, "refs/notes/")
 	log.Printf("current review is %s\n", ref)
-	return nil
-}
-
-func (r *Reviewer) Switch(ref string) string {
-
-	ref = strings.TrimPrefix(ref, "refs/notes/review/")
-
-	r.ref = "review/" + ref
-	log.Printf("switching to review %s\n", r.ref)
-	return r.ref
+	return ref
 }
 
 func (r *Reviewer) List(path string) Reviews {
@@ -59,7 +45,7 @@ func (r *Reviewer) List(path string) Reviews {
 		return reviews
 	}
 	log.Printf("listing reviews for %s at %s\n", hash, path)
-	note, err := r.Show(r.ref, hash)
+	note, err := r.Show(r.ref(), hash)
 	if err != nil {
 		log.Printf("[ERROR]: %s\n", err)
 		return reviews
@@ -103,5 +89,5 @@ func (r *Reviewer) Add(path string, line int, message string) error {
 
 	//base64 encode the message so that it can contain formatting characters
 	encodedMessage := base64.StdEncoding.EncodeToString([]byte(message))
-	return r.AddNote(r.ref, hash, fmt.Sprintf("%d:%s", line, encodedMessage))
+	return r.AddNote(r.ref(), hash, fmt.Sprintf("%d:%s", line, encodedMessage))
 }
