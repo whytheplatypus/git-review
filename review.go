@@ -27,7 +27,7 @@ func (r *Reviewer) Init() error {
 	// can possibly extract this
 	ref, err := r.GetRef("REVIEW_HEAD")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	// these are both the same error case, good place for refactoring
@@ -36,7 +36,9 @@ func (r *Reviewer) Init() error {
 	}
 
 	// hide this
-	log.Println(r.Switch(ref))
+	r.Switch(ref)
+
+	log.Printf("current review is %s\n", ref)
 	return nil
 }
 
@@ -45,6 +47,7 @@ func (r *Reviewer) Switch(ref string) string {
 	ref = strings.TrimPrefix(ref, "refs/notes/review/")
 
 	r.ref = "review/" + ref
+	log.Printf("switching to review %s\n", r.ref)
 	return r.ref
 }
 
@@ -52,12 +55,16 @@ func (r *Reviewer) List(path string) Reviews {
 	reviews := make(Reviews)
 	hash, err := r.Hash(path)
 	if err != nil {
+		log.Printf("[ERROR]: %s\n", err)
 		return reviews
 	}
+	log.Printf("listing reviews for %s at %s\n", hash, path)
 	note, err := r.Show(r.ref, hash)
 	if err != nil {
+		log.Printf("[ERROR]: %s\n", err)
 		return reviews
 	}
+	//TODO: this is a good place to refactor
 	noteLines := strings.Split(note, "\n")
 	for _, line := range noteLines {
 		if line == "" {
@@ -66,15 +73,17 @@ func (r *Reviewer) List(path string) Reviews {
 		parts := strings.Split(line, ":")
 		lineNumber, err := strconv.Atoi(parts[0])
 		if err != nil {
-			log.Println(err)
+			log.Printf("[ERROR]: %s\n", err)
 			continue
 		}
-		message, err := base64.StdEncoding.DecodeString(parts[1])
+		m, err := base64.StdEncoding.DecodeString(parts[1])
 		if err != nil {
-			log.Println(err)
+			log.Printf("[ERROR]: %s\n", err)
 			continue
 		}
-		reviews[lineNumber] = append(reviews[lineNumber], string(message))
+		message := string(m)
+		log.Printf("reading note %s at %d\n", message, lineNumber)
+		reviews[lineNumber] = append(reviews[lineNumber], message)
 	}
 	return reviews
 }
