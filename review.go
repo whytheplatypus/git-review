@@ -19,9 +19,10 @@ type Reviewer struct {
 	Show    func(ref string, hash string) (string, error)
 	GetRef  func(ref string) (string, error)
 	AddNote func(ref string, hash string, message string) error
+	Prune   func(ref string) error
 }
 
-func (r *Reviewer) ref() string {
+func (r *Reviewer) Ref() string {
 	ref, err := r.GetRef("REVIEW_HEAD")
 	if err != nil {
 		log.Fatal(err)
@@ -45,7 +46,7 @@ func (r *Reviewer) List(path string) Reviews {
 		return reviews
 	}
 	log.Printf("listing reviews for %s at %s\n", hash, path)
-	note, err := r.Show(r.ref(), hash)
+	note, err := r.Show(r.Ref(), hash)
 	if err != nil {
 		log.Printf("[ERROR]: %s\n", err)
 		return reviews
@@ -89,5 +90,9 @@ func (r *Reviewer) Add(path string, line int, message string) error {
 
 	//base64 encode the message so that it can contain formatting characters
 	encodedMessage := base64.StdEncoding.EncodeToString([]byte(message))
-	return r.AddNote(r.ref(), hash, fmt.Sprintf("%d:%s", line, encodedMessage))
+	return r.AddNote(r.Ref(), hash, fmt.Sprintf("%d:%s", line, encodedMessage))
+}
+
+func (r *Reviewer) Clean() error {
+	return r.Prune(r.Ref())
 }

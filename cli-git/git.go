@@ -19,6 +19,19 @@ func Show(ref string, hash string) (string, error) {
 	return string(o), nil
 }
 
+func Prune(ref string) error {
+	log.Printf("pruning %s\n", ref)
+	c := exec.Command("git", "notes", "prune", "-v")
+	c.Env = append(c.Env, "GIT_NOTES_REF=refs/notes/"+ref)
+	o, err := c.CombinedOutput()
+	if err != nil {
+		log.Println(string(o))
+		return err
+	}
+	log.Println(string(o))
+	return err
+}
+
 // WriteNote appends a note to a given hash
 func AddNote(ref string, hash string, message string) error {
 	c := exec.Command("git", "notes", "append", "-m", message, hash)

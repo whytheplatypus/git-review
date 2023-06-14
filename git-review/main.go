@@ -43,6 +43,9 @@ func Switch(args []string, reviewer review.Reviewer) error {
 			return err
 		}
 		for _, ref := range refs {
+			if fmt.Sprintf("review/%s", ref) == reviewer.Ref() {
+				fmt.Printf("* ")
+			}
 			fmt.Println(ref)
 		}
 		return nil
@@ -94,11 +97,20 @@ func Add(args []string, reviewer review.Reviewer) error {
 	return reviewer.Add(file, *line, *message)
 }
 
+func Prune(args []string, reviewer review.Reviewer) error {
+	f := flag.NewFlagSet("prune", flag.ExitOnError)
+	f.Parse(args)
+
+	//FIXME: aweful back and forth naming
+	return reviewer.Clean()
+}
+
 var commands = map[string]command{
 	"switch": Switch,
 	"add":    Add,
 	// I think I need a flag to either show the results for a file as is or from history
-	"list": Review, // default command
+	"list":  Review, // default command
+	"prune": Prune,
 }
 
 func main() {
@@ -117,26 +129,18 @@ func main() {
 		Show:    cligit.Show,
 		AddNote: cligit.AddNote,
 		GetRef:  cligit.GetRef,
+		Prune:   cligit.Prune,
 	}
 
 	if tracked {
 		log.Println("tracking")
-		reviewer = review.Reviewer{
-			Hash:    cligit.TrackedHash,
-			Show:    cligit.Show,
-			AddNote: cligit.AddNote,
-			GetRef:  cligit.GetRef,
-		}
+		reviewer.Hash = cligit.TrackedHash
 	}
 
 	args := flag.Args()[1:]
 	command, ok := commands[flag.Arg(0)]
 	if !ok {
 		log.Fatalf("Unknown command %s", flag.Arg(0))
-	}
-
-	if err := reviewer.Init(); err != nil {
-		log.Fatal(err)
 	}
 
 	if err := command(args, reviewer); err != nil {
