@@ -64,13 +64,14 @@ func Review(args []string, reviewer review.Reviewer) error {
 
 	file := f.Arg(0)
 	if file == "" {
+		// list directory
 		return errors.New("file must be specified")
 	}
 
 	reviews := reviewer.List(file)
 
 	if *line > -1 {
-		fmt.Println(reviews[*line])
+		fmt.Printf("%d - %s", *line, reviews[*line])
 		return nil
 	}
 
@@ -105,19 +106,27 @@ func Prune(args []string, reviewer review.Reviewer) error {
 	return reviewer.Clean()
 }
 
+func Noop(msg string) func([]string, review.Reviewer) error {
+	return func(args []string, reviewer review.Reviewer) error {
+		fmt.Printf("%s is not yet implemented.\n", msg)
+		return nil
+	}
+}
+
 var commands = map[string]command{
 	"switch": Switch,
 	"add":    Add,
-	// I think I need a flag to either show the results for a file as is or from history
-	"list":  Review, // default command
-	"prune": Prune,
+	"list":   Review, // default command
+	"prune":  Prune,
+	"lsp":    Noop("lsp"),
+	"server": Noop("server"),
 }
 
 func main() {
 	var verbose bool
 	var tracked bool
 	flag.BoolVar(&verbose, "v", false, "Show verbose logging")
-	flag.BoolVar(&tracked, "t", false, "Use tracked refs for files")
+	flag.BoolVar(&tracked, "t", true, "compute refs from current file contents")
 	flag.Parse()
 
 	if verbose {
@@ -133,7 +142,7 @@ func main() {
 	}
 
 	if tracked {
-		log.Println("tracking")
+		log.Println("using the hash from git history")
 		reviewer.Hash = cligit.TrackedHash
 	}
 
